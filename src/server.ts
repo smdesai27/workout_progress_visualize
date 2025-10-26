@@ -146,9 +146,26 @@ app.get('/api/sessions', (_req, res) => {
 });
 
 app.get('/api/session/:id', (req, res) => {
-  const id = req.params.id;
-  const s = SESSIONS.find(x => x.id === id);
-  if (!s) return res.status(404).json({ error: 'Not found' });
+  // Accept both path param and query param as callers may vary.
+  // Be robust to URL-encoded ids (e.g. "%7C%7C%7C" for "|||").
+  const raw = (req.params.id ?? req.query.id ?? '') as string;
+  let id = raw;
+  try {
+    id = decodeURIComponent(raw);
+  } catch (err) {
+    id = raw;
+  }
+
+  let s = SESSIONS.find(x => x.id === id);
+  if (!s) {
+    const encoded = encodeURIComponent(id);
+    s = SESSIONS.find(x => encodeURIComponent(x.id) === encoded || x.id === raw);
+  }
+
+  if (!s) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
   res.json(s);
 });
 
