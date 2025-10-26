@@ -131,8 +131,8 @@ function App() {
 
       <div className="card">
         <div className="controls">
-          <div>
-            <label className="meta">Exercise</label><br/>
+          <div className="control-item" style={{width:240}}>
+            <label className="meta">Exercise</label>
             <select value={selected||''} onChange={e=>setSelected(e.target.value)}>
               <option value="">-- choose exercise --</option>
               {exercises.map((ex)=> (
@@ -140,7 +140,7 @@ function App() {
               ))}
             </select>
           </div>
-          <div style={{flex:1}}>
+          <div className="control-item sessions-control">
             <label className="meta">Sessions</label>
             <select onChange={e=>loadSession(e.target.value)}>
               <option value="">-- choose session (view sets) --</option>

@@ -16,6 +16,13 @@ body{
 .header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
 .logo{font-weight:700;font-size:20px;color:var(--accent)}
 .controls{display:flex;gap:12px;align-items:center;margin-bottom:20px}
+.control-item{display:flex;flex-direction:column;gap:6px}
+/* Make sessions control match the right column exercises list width */
+.sessions-control{width:360px}
+
+@media (max-width:1000px){
+  .sessions-control{width:auto;flex:1}
+}
 .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:16px;border-radius:10px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
 .row{display:flex;gap:16px;align-items:stretch}
 .left{flex:1;display:flex;flex-direction:column}
