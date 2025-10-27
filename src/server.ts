@@ -9,7 +9,8 @@ type RawRow = {
   exercise_notes: string;
   set_index: string;
   set_type: string;
-  weight_lbs: string;
+  weight_lbs?: string;
+  weight_kg?: string;
   reps: string;
   distance_miles: string;
   duration_seconds: string;
@@ -43,9 +44,12 @@ function buildSessions(rows: RawRow[]) {
     if (!session.exercises.has(ex)) {
       session.exercises.set(ex, []);
     }
+    const weightKg = r.weight_kg ? Number(r.weight_kg) : null;
+    const weightLbs = r.weight_lbs ? Number(r.weight_lbs) : null;
+    const finalWeightLbs = weightLbs !== null ? weightLbs : (weightKg !== null ? weightKg * 2.20462262185 : null);
     session.exercises.get(ex).push({
       set_index: Number(r.set_index),
-      weight_lbs: r.weight_lbs ? Number(r.weight_lbs) : null,
+      weight_lbs: finalWeightLbs,
       reps: r.reps ? Number(r.reps) : null,
       distance_miles: r.distance_miles ? Number(r.distance_miles) : null,
       duration_seconds: r.duration_seconds ? Number(r.duration_seconds) : null,

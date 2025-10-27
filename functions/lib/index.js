@@ -128,7 +128,19 @@ function loadData() {
             exercise_notes: r.exercise_notes ?? r['"exercise_notes"'] ?? '',
             set_index: r.set_index ?? r['"set_index"'] ?? '',
             set_type: r.set_type ?? r['"set_type"'] ?? '',
-            weight_lbs: r.weight_lbs ?? r['"weight_lbs"'] ?? '',
+            // Prefer explicit pounds. If absent, accept kilograms fields and convert to lbs.
+            weight_lbs: (() => {
+                const lbs = r.weight_lbs ?? r['"weight_lbs"'];
+                if (lbs !== undefined && lbs !== null && String(lbs).trim() !== '')
+                    return String(lbs);
+                const kg = r.weight_kg ?? r.weight_kgs ?? r['"weight_kg"'] ?? r['"weight_kgs"'];
+                if (kg !== undefined && kg !== null && String(kg).trim() !== '') {
+                    const n = Number(String(kg).replace(/[^0-9.\-]/g, ''));
+                    if (!Number.isNaN(n))
+                        return String(n * 2.20462);
+                }
+                return '';
+            })(),
             reps: r.reps ?? r['"reps"'] ?? '',
             distance_miles: r.distance_miles ?? r['"distance_miles"'] ?? '',
             duration_seconds: r.duration_seconds ?? r['"duration_seconds"'] ?? '',
