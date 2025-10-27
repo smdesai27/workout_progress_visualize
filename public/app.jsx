@@ -62,9 +62,12 @@ function App() {
       const session = map.get(key);
       const ex = r.exercise_title || '(unknown)';
       if (!session.exercises.has(ex)) session.exercises.set(ex, []);
+      const weightKg = r.weight_kg ? Number(r.weight_kg) : null;
+      const weightLbs = r.weight_lbs ? Number(r.weight_lbs) : null;
+      const finalWeightLbs = weightLbs !== null ? weightLbs : (weightKg !== null ? weightKg * 2.20462262185 : null);
       session.exercises.get(ex).push({
         set_index: r.set_index ? Number(r.set_index) : null,
-        weight_lbs: r.weight_lbs ? Number(r.weight_lbs) : null,
+        weight_lbs: finalWeightLbs,
         reps: r.reps ? Number(r.reps) : null,
         distance_miles: r.distance_miles ? Number(r.distance_miles) : null,
         duration_seconds: r.duration_seconds ? Number(r.duration_seconds) : null,
