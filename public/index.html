@@ -12,6 +12,30 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- PapaParse for client-side CSV parsing -->
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <!-- Firebase Analytics: initialize via ES module (uses the provided measurementId) -->
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+      import { getAnalytics } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js';
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyBwOD2Vy-nwr8rs-F8NqMB6AK5iK-JoW5s",
+        authDomain: "workout-progression-visulizer.firebaseapp.com",
+        projectId: "workout-progression-visulizer",
+        storageBucket: "workout-progression-visulizer.firebasestorage.app",
+        messagingSenderId: "555087733477",
+        appId: "1:555087733477:web:84edf445cfbe85be7dea0c",
+        measurementId: "G-H32MG6MK8N"
+      };
+
+      try {
+        const app = initializeApp(firebaseConfig);
+        // getAnalytics may throw if run in unsupported environments (e.g. file://)
+        const analytics = getAnalytics(app);
+        console.log('Firebase Analytics initialized successfully');
+      } catch (e) {
+        console.warn('Firebase analytics not initialized:', e && e.message ? e.message : e);
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
