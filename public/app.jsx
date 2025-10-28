@@ -129,7 +129,7 @@ function App() {
     <div className="container">
       <div className="header">
         <div className="logo">Progression Visualizer</div>
-        <div className="meta">Export workout CSV from hevy and visualize all of your workouts and progression --- sanil_desai@brown.edu</div>
+        <div className="meta">Export workout CSV from hevy and visualize your workouts and progression --- contact: sd22projects@gmail.com</div>
       </div>
 
       <div className="card">
