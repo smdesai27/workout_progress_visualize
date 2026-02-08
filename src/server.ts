@@ -1,3 +1,6 @@
+// Load environment variables from .env file (must be first!)
+import 'dotenv/config';
+
 // Clean server implementation
 type RawRow = {
   title: string;
@@ -22,6 +25,35 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse/sync';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// Initialize Gemini AI (use environment variable for API key)
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+let genAI: GoogleGenerativeAI | null = null;
+if (GEMINI_API_KEY) {
+  genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+}
+
+// Security: HTML entity escaping to prevent XSS
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Validate and sanitize session ID format
+function sanitizeSessionId(id: string): string | null {
+  // Session IDs should be alphanumeric with common separators
+  // Reject if contains HTML-like content
+  if (/<[^>]*>/g.test(id)) {
+    return null; // Reject HTML tags
+  }
+  return id;
+}
+
 
 const CSV_PATH = path.resolve(__dirname, '..', 'workout_data.csv');
 
@@ -140,6 +172,7 @@ loadData();
 
 const app = express();
 app.use(cors());
+app.use(express.json({ limit: '10kb' })); // DoS protection: limit payload size
 app.use(express.static(path.resolve(__dirname, '..', 'public')));
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -160,9 +193,16 @@ app.get('/api/session/:id', (req, res) => {
     id = raw;
   }
 
-  let s = SESSIONS.find(x => x.id === id);
+  // Security: Reject IDs containing HTML tags (XSS prevention)
+  const sanitizedId = sanitizeSessionId(id);
+  if (sanitizedId === null) {
+    res.status(400).json({ error: 'Invalid session ID format' });
+    return;
+  }
+
+  let s = SESSIONS.find(x => x.id === sanitizedId);
   if (!s) {
-    const encoded = encodeURIComponent(id);
+    const encoded = encodeURIComponent(sanitizedId);
     s = SESSIONS.find(x => encodeURIComponent(x.id) === encoded || x.id === raw);
   }
 
@@ -193,5 +233,75 @@ app.get('/api/reload', (_req, res) => {
   res.json({ ok: true });
 });
 
+// AI Coach chat endpoint using Gemini
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { systemPrompt, userMessage } = req.body;
+
+    if (!userMessage) {
+      res.status(400).json({ error: 'Missing userMessage' });
+      return;
+    }
+
+    if (!genAI) {
+      // No API key - return helpful message
+      res.json({
+        response: 'AI Coach requires a Gemini API key. Please set GEMINI_API_KEY environment variable. Get free key at: https://ai.google.dev/',
+        model: 'none'
+      });
+      return;
+    }
+
+    // Use Gemini Flash for fast, quality responses
+    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+
+    // Combine system prompt and user message
+    const fullPrompt = systemPrompt
+      ? `${systemPrompt}\n\nUser Question: ${userMessage}\n\nProvide a helpful, concise response (2-3 sentences):`
+      : userMessage;
+
+    // Retry logic for rate limits
+    let lastError: any = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const result = await model.generateContent(fullPrompt);
+        const response = result.response.text();
+        res.json({ response, model: 'gemini-3-flash-preview' });
+        return;
+      } catch (err: any) {
+        lastError = err;
+        if (err.status === 429) {
+          // Rate limited - wait and retry
+          const waitTime = Math.min(2000 * Math.pow(2, attempt), 10000);
+          console.log(`Rate limited, waiting ${waitTime}ms before retry ${attempt + 1}`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+        throw err; // Re-throw non-rate-limit errors
+      }
+    }
+
+    // All retries exhausted
+    throw lastError;
+
+  } catch (error: any) {
+    console.error('AI Chat error:', error);
+
+    // User-friendly error messages
+    let userMessage = 'AI generation failed. Please try again.';
+    if (error.status === 429) {
+      userMessage = 'AI is busy right now. Please wait a moment and try again.';
+    } else if (error.status === 401 || error.status === 403) {
+      userMessage = 'API key issue. Please check your GEMINI_API_KEY.';
+    }
+
+    res.status(500).json({
+      error: userMessage,
+      details: error.message
+    });
+  }
+});
+
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 app.listen(PORT, () => console.log(`Server listening on http://localhost:${PORT}`));
+
