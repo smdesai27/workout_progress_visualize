@@ -1,0 +1,424 @@
+{
+    "exercises": {
+        "Bench Press (Barbell)": {
+            "primary": [
+                "Chest"
+            ],
+            "secondary": [
+                "Triceps",
+                "Front Delts"
+            ]
+        },
+        "Incline Bench Press (Barbell)": {
+            "primary": [
+                "Chest"
+            ],
+            "secondary": [
+                "Triceps",
+                "Front Delts"
+            ]
+        },
+        "Incline Bench Press (Dumbbell)": {
+            "primary": [
+                "Chest"
+            ],
+            "secondary": [
+                "Triceps",
+                "Front Delts"
+            ]
+        },
+        "Chest Fly (Machine)": {
+            "primary": [
+                "Chest"
+            ],
+            "secondary": []
+        },
+        "Chest Dip": {
+            "primary": [
+                "Chest"
+            ],
+            "secondary": [
+                "Triceps",
+                "Front Delts"
+            ]
+        },
+        "Iso-lateral Incline Chest Press": {
+            "primary": [
+                "Chest"
+            ],
+            "secondary": [
+                "Triceps",
+                "Front Delts"
+            ]
+        },
+        "Iso-Lateral Chest Press (Machine)": {
+            "primary": [
+                "Chest"
+            ],
+            "secondary": [
+                "Triceps",
+                "Front Delts"
+            ]
+        },
+        "Squat (Barbell)": {
+            "primary": [
+                "Quads",
+                "Glutes"
+            ],
+            "secondary": [
+                "Hamstrings",
+                "Core"
+            ]
+        },
+        "Front Squat": {
+            "primary": [
+                "Quads"
+            ],
+            "secondary": [
+                "Glutes",
+                "Core"
+            ]
+        },
+        "Smith Bulgarian Squat": {
+            "primary": [
+                "Quads",
+                "Glutes"
+            ],
+            "secondary": [
+                "Hamstrings"
+            ]
+        },
+        "Bulgarian Split Squat": {
+            "primary": [
+                "Quads",
+                "Glutes"
+            ],
+            "secondary": [
+                "Hamstrings"
+            ]
+        },
+        "Hack Squat (Machine)": {
+            "primary": [
+                "Quads"
+            ],
+            "secondary": [
+                "Glutes"
+            ]
+        },
+        "Leg Extension (Machine)": {
+            "primary": [
+                "Quads"
+            ],
+            "secondary": []
+        },
+        "Single Leg Extensions": {
+            "primary": [
+                "Quads"
+            ],
+            "secondary": []
+        },
+        "Romanian Deadlift (Barbell)": {
+            "primary": [
+                "Hamstrings",
+                "Glutes"
+            ],
+            "secondary": [
+                "Lower Back"
+            ]
+        },
+        "Seated Leg Curl (Machine)": {
+            "primary": [
+                "Hamstrings"
+            ],
+            "secondary": []
+        },
+        "Lying Leg Curl (Machine)": {
+            "primary": [
+                "Hamstrings"
+            ],
+            "secondary": []
+        },
+        "Standing Calf Raise (Machine)": {
+            "primary": [
+                "Calves"
+            ],
+            "secondary": []
+        },
+        "Calf Extension (Machine)": {
+            "primary": [
+                "Calves"
+            ],
+            "secondary": []
+        },
+        "Pull Up (Weighted)": {
+            "primary": [
+                "Lats",
+                "Biceps"
+            ],
+            "secondary": [
+                "Rear Delts",
+                "Core"
+            ]
+        },
+        "Lat Pulldown (Cable)": {
+            "primary": [
+                "Lats"
+            ],
+            "secondary": [
+                "Biceps",
+                "Rear Delts"
+            ]
+        },
+        "Bent Over Row (Barbell)": {
+            "primary": [
+                "Back"
+            ],
+            "secondary": [
+                "Biceps",
+                "Rear Delts"
+            ]
+        },
+        "Seated Cable Row - V Grip (Cable)": {
+            "primary": [
+                "Back"
+            ],
+            "secondary": [
+                "Biceps"
+            ]
+        },
+        "T Bar Row": {
+            "primary": [
+                "Back"
+            ],
+            "secondary": [
+                "Biceps",
+                "Rear Delts"
+            ]
+        },
+        "Iso-Lateral Row (Machine)": {
+            "primary": [
+                "Back"
+            ],
+            "secondary": [
+                "Biceps"
+            ]
+        },
+        "Iso-Lateral Low Row": {
+            "primary": [
+                "Back"
+            ],
+            "secondary": [
+                "Biceps"
+            ]
+        },
+        "Overhead Press (Dumbbell)": {
+            "primary": [
+                "Shoulders"
+            ],
+            "secondary": [
+                "Triceps"
+            ]
+        },
+        "Overhead Press (Barbell)": {
+            "primary": [
+                "Shoulders"
+            ],
+            "secondary": [
+                "Triceps"
+            ]
+        },
+        "Lateral Raise (Dumbbell)": {
+            "primary": [
+                "Shoulders"
+            ],
+            "secondary": []
+        },
+        "Lateral Raise (Cable)": {
+            "primary": [
+                "Shoulders"
+            ],
+            "secondary": []
+        },
+        "Lu Raise": {
+            "primary": [
+                "Shoulders"
+            ],
+            "secondary": []
+        },
+        "Rear Delt Reverse Fly (Cable)": {
+            "primary": [
+                "Rear Delts"
+            ],
+            "secondary": []
+        },
+        "Rear Delt Reverse Fly (Machine)": {
+            "primary": [
+                "Rear Delts"
+            ],
+            "secondary": []
+        },
+        "Face Pull": {
+            "primary": [
+                "Rear Delts"
+            ],
+            "secondary": [
+                "Shoulders"
+            ]
+        },
+        "Tricep Extension (Rope)": {
+            "primary": [
+                "Triceps"
+            ],
+            "secondary": []
+        },
+        "Triceps Pushdown": {
+            "primary": [
+                "Triceps"
+            ],
+            "secondary": []
+        },
+        "Triceps Extension (Cable)": {
+            "primary": [
+                "Triceps"
+            ],
+            "secondary": []
+        },
+        "Rope Triceps Overhead": {
+            "primary": [
+                "Triceps"
+            ],
+            "secondary": []
+        },
+        "Preacher Curl (Barbell)": {
+            "primary": [
+                "Biceps"
+            ],
+            "secondary": []
+        },
+        "Preacher Curl (Machine)": {
+            "primary": [
+                "Biceps"
+            ],
+            "secondary": []
+        },
+        "Bicep Curl (Barbell)": {
+            "primary": [
+                "Biceps"
+            ],
+            "secondary": []
+        },
+        "Bicep Curl (Dumbbell)": {
+            "primary": [
+                "Biceps"
+            ],
+            "secondary": []
+        },
+        "Hammer Curl (Dumbbell)": {
+            "primary": [
+                "Biceps"
+            ],
+            "secondary": [
+                "Forearms"
+            ]
+        },
+        "Seated Incline Curl (Dumbbell)": {
+            "primary": [
+                "Biceps"
+            ],
+            "secondary": []
+        },
+        "Behind the Back Curl (Cable)": {
+            "primary": [
+                "Biceps"
+            ],
+            "secondary": []
+        },
+        "Seated Palms Up Wrist Curl": {
+            "primary": [
+                "Forearms"
+            ],
+            "secondary": []
+        },
+        "Behind the Back Bicep Wrist Curl (Barbell)": {
+            "primary": [
+                "Forearms"
+            ],
+            "secondary": []
+        },
+        "Dead Hang": {
+            "primary": [
+                "Forearms"
+            ],
+            "secondary": [
+                "Lats"
+            ]
+        },
+        "Leg Raise Parallel Bars": {
+            "primary": [
+                "Core"
+            ],
+            "secondary": []
+        },
+        "Decline Crunch (Weighted)": {
+            "primary": [
+                "Core"
+            ],
+            "secondary": []
+        },
+        "Hip Adduction (Machine)": {
+            "primary": [
+                "Adductors"
+            ],
+            "secondary": [
+                "Glutes"
+            ]
+        },
+        "Push Up": {
+            "primary": [
+                "Chest"
+            ],
+            "secondary": [
+                "Triceps",
+                "Front Delts"
+            ]
+        }
+    },
+    "muscleGroups": [
+        "Chest",
+        "Back",
+        "Lats",
+        "Shoulders",
+        "Rear Delts",
+        "Front Delts",
+        "Biceps",
+        "Triceps",
+        "Forearms",
+        "Quads",
+        "Hamstrings",
+        "Glutes",
+        "Calves",
+        "Core",
+        "Lower Back",
+        "Adductors"
+    ],
+    "radarGroups": [
+        "Chest",
+        "Back",
+        "Shoulders",
+        "Biceps",
+        "Triceps",
+        "Quads",
+        "Hamstrings",
+        "Glutes",
+        "Calves",
+        "Core"
+    ],
+    "muscleAliases": {
+        "Lats": "Back",
+        "Rear Delts": "Shoulders",
+        "Front Delts": "Shoulders",
+        "Lower Back": "Back",
+        "Forearms": "Biceps",
+        "Adductors": "Glutes"
+    }
+}
