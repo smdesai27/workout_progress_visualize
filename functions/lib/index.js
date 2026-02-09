@@ -43,8 +43,32 @@ const cors_1 = __importDefault(require("cors"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const sync_1 = require("csv-parse/sync");
+const generative_ai_1 = require("@google/generative-ai");
+// Security: HTML entity escaping to prevent XSS
+function escapeHtml(str) {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+// Validate and sanitize session ID format
+function sanitizeSessionId(id) {
+    if (/<[^>]*>/g.test(id)) {
+        return null;
+    }
+    return id;
+}
+// Initialize Gemini AI (use Firebase config for API key)
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || functions.config().gemini?.api_key || '';
+let genAI = null;
+if (GEMINI_API_KEY) {
+    genAI = new generative_ai_1.GoogleGenerativeAI(GEMINI_API_KEY);
+}
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
+app.use(express_1.default.json({ limit: '10kb' })); // DoS protection
 const CSV_PATH = path_1.default.resolve(__dirname, '..', 'workout_data.csv');
 function buildSessions(rows) {
     const map = new Map();
@@ -64,9 +88,12 @@ function buildSessions(rows) {
         const ex = r.exercise_title || '(unknown)';
         if (!session.exercises.has(ex))
             session.exercises.set(ex, []);
+        const weightKg = r.weight_kg ? Number(r.weight_kg) : null;
+        const weightLbs = r.weight_lbs ? Number(r.weight_lbs) : null;
+        const finalWeightLbs = weightLbs !== null ? weightLbs : (weightKg !== null ? weightKg * 2.20462262185 : null);
         session.exercises.get(ex).push({
             set_index: Number(r.set_index),
-            weight_lbs: r.weight_lbs ? Number(r.weight_lbs) : null,
+            weight_lbs: finalWeightLbs,
             reps: r.reps ? Number(r.reps) : null,
             distance_miles: r.distance_miles ? Number(r.distance_miles) : null,
             duration_seconds: r.duration_seconds ? Number(r.duration_seconds) : null,
@@ -128,19 +155,7 @@ function loadData() {
             exercise_notes: r.exercise_notes ?? r['"exercise_notes"'] ?? '',
             set_index: r.set_index ?? r['"set_index"'] ?? '',
             set_type: r.set_type ?? r['"set_type"'] ?? '',
-            // Prefer explicit pounds. If absent, accept kilograms fields and convert to lbs.
-            weight_lbs: (() => {
-                const lbs = r.weight_lbs ?? r['"weight_lbs"'];
-                if (lbs !== undefined && lbs !== null && String(lbs).trim() !== '')
-                    return String(lbs);
-                const kg = r.weight_kg ?? r.weight_kgs ?? r['"weight_kg"'] ?? r['"weight_kgs"'];
-                if (kg !== undefined && kg !== null && String(kg).trim() !== '') {
-                    const n = Number(String(kg).replace(/[^0-9.\-]/g, ''));
-                    if (!Number.isNaN(n))
-                        return String(n * 2.20462);
-                }
-                return '';
-            })(),
+            weight_lbs: r.weight_lbs ?? r['"weight_lbs"'] ?? '',
             reps: r.reps ?? r['"reps"'] ?? '',
             distance_miles: r.distance_miles ?? r['"distance_miles"'] ?? '',
             duration_seconds: r.duration_seconds ?? r['"duration_seconds"'] ?? '',
@@ -202,6 +217,69 @@ app.get('/api/exercise/:name/progression', (req, res) => {
 app.get('/api/reload', (_req, res) => {
     loadData();
     res.json({ ok: true });
+});
+// AI Chat endpoint with Gemini API
+app.post('/api/chat', async (req, res) => {
+    try {
+        const { userMessage, systemPrompt } = req.body;
+        if (!userMessage || typeof userMessage !== 'string') {
+            res.status(400).json({ error: 'Missing or invalid userMessage' });
+            return;
+        }
+        if (!genAI) {
+            res.status(503).json({
+                error: 'AI service temporarily unavailable',
+                response: 'The AI Coach is currently unavailable. Please check that the API key is configured.'
+            });
+            return;
+        }
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const fullPrompt = systemPrompt
+            ? `${systemPrompt}\n\nUser: ${userMessage}`
+            : userMessage;
+        // Retry logic for rate limits
+        let attempts = 0;
+        const maxAttempts = 3;
+        let lastError = null;
+        while (attempts < maxAttempts) {
+            try {
+                const result = await model.generateContent(fullPrompt);
+                const response = result.response;
+                const text = response.text();
+                res.json({ response: text });
+                return;
+            }
+            catch (err) {
+                lastError = err;
+                if (err?.status === 429) {
+                    attempts++;
+                    if (attempts < maxAttempts) {
+                        await new Promise(resolve => setTimeout(resolve, 2000 * attempts));
+                        continue;
+                    }
+                }
+                break;
+            }
+        }
+        // Handle final error
+        console.error('Gemini API error:', lastError);
+        if (lastError?.status === 429) {
+            res.status(429).json({
+                error: 'Rate limit exceeded',
+                response: 'The AI is taking a short break. Please try again in a minute.'
+            });
+        }
+        else {
+            res.status(500).json({
+                error: 'AI service error',
+                response: 'I encountered an issue. Please try again.'
+            });
+        }
+    }
+    catch (err) {
+        console.error('Chat endpoint error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 exports.api = functions.https.onRequest(app);
 //# sourceMappingURL=index.js.map

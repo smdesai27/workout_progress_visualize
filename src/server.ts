@@ -252,8 +252,42 @@ app.post('/api/chat', async (req, res) => {
       return;
     }
 
-    // Use Gemini Flash for fast, quality responses
-    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+    // Call ListModels API directly to see what's available
+    let availableModels: string[] = [];
+    try {
+      const listResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`);
+      if (listResponse.ok) {
+        const listData = await listResponse.json();
+        availableModels = (listData.models || []).map((m: any) => m.name || '').filter(Boolean);
+      }
+    } catch (listErr: any) {
+      // If ListModels fails, we'll use fallback model names
+    }
+
+    // Find a model that supports generateContent
+    let model: any = null;
+    let modelName = '';
+    
+    // Try models from ListModels first, then fallback to common names
+    const candidates = availableModels.length > 0 
+      ? availableModels.filter((name: string) => name.includes('gemini'))
+      : ['gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'gemini-pro', 'gemini-1.5-pro', 'models/gemini-1.5-pro'];
+    
+    for (const candidate of candidates) {
+      try {
+        // Remove 'models/' prefix if present, SDK adds it
+        const cleanName = candidate.replace(/^models\//, '');
+        model = genAI.getGenerativeModel({ model: cleanName });
+        modelName = cleanName;
+        break;
+      } catch (modelErr: any) {
+        continue;
+      }
+    }
+
+    if (!model) {
+      throw new Error('No available Gemini models found. Please check your API key and model availability.');
+    }
 
     // Combine system prompt and user message
     const fullPrompt = systemPrompt
@@ -266,7 +300,7 @@ app.post('/api/chat', async (req, res) => {
       try {
         const result = await model.generateContent(fullPrompt);
         const response = result.response.text();
-        res.json({ response, model: 'gemini-3-flash-preview' });
+        res.json({ response, model: modelName });
         return;
       } catch (err: any) {
         lastError = err;
@@ -297,6 +331,7 @@ app.post('/api/chat', async (req, res) => {
 
     res.status(500).json({
       error: userMessage,
+      response: userMessage, // Include response field for consistency
       details: error.message
     });
   }
