@@ -42,8 +42,8 @@ function sanitizeSessionId(id: string): string | null {
   return id;
 }
 
-// Initialize Gemini AI (use Firebase config for API key)
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || functions.config().gemini?.api_key || '';
+// Initialize Gemini AI (use environment variable for API key)
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 let genAI: GoogleGenerativeAI | null = null;
 if (GEMINI_API_KEY) {
   genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
@@ -150,7 +150,6 @@ function loadData() {
     RAW_ROWS = [];
     SESSIONS = [];
   }
-}
 }
 
 // Lazy loading middleware
@@ -274,8 +273,8 @@ app.post('/api/chat', async (req, res) => {
     console.error('Gemini API error:', lastError);
     if ((lastError as any)?.status === 429) {
       res.status(429).json({
-        error: 'Rate limit exceeded',
-        response: 'The AI is taking a short break. Please try again in a minute.'
+        error: 'AI currently unavailable',
+        response: 'AI currently unavailable'
       });
     } else {
       res.status(500).json({

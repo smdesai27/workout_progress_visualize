@@ -289,16 +289,66 @@ function App() {
 
                   {/* Prediction Info */}
                   {showPrediction && predictionData && (
-                    <div style={{ marginTop: 12, padding: 10, background: 'rgba(139,92,246,0.1)', borderRadius: 8, fontSize: 12 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                        <span>🔮</span>
-                        <strong>12-Week Prediction</strong>
-                        <span className="meta">(R² = {(predictionData.model.rSquared * 100).toFixed(0)}% fit)</span>
+                    <div style={{ 
+                      marginTop: 16, 
+                      padding: 16, 
+                      background: 'rgba(139,92,246,0.1)', 
+                      borderRadius: 12, 
+                      fontSize: 14,
+                      border: '1px solid rgba(139,92,246,0.2)'
+                    }}>
+                      {/* Header with icon and title */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                        <span style={{ fontSize: 20 }}>🔮</span>
+                        <strong style={{ fontSize: 16, fontWeight: 600 }}>12-Week Prediction</strong>
+                        <span style={{
+                          marginLeft: 'auto',
+                          padding: '4px 8px',
+                          background: 'rgba(139,92,246,0.2)',
+                          borderRadius: 6,
+                          fontSize: 12,
+                          fontWeight: 500,
+                          color: 'rgba(230, 238, 248, 0.9)'
+                        }}>
+                          R² = {(predictionData.model.rSquared * 100).toFixed(0)}% fit
+                        </span>
                       </div>
-                      <div className="meta">
+                      
+                      {/* Description */}
+                      <div style={{ 
+                        fontSize: 13, 
+                        color: 'rgba(230, 238, 248, 0.7)',
+                        marginBottom: 12,
+                        lineHeight: 1.5
+                      }}>
                         Based on logarithmic decay model for {effectiveTrainingAge} trainees.
-                        Predicted 1RM in 12 weeks: <strong>{predictionData.predictions[predictionData.predictions.length - 1]?.predicted} lbs</strong>
-                        {' ('}±{Math.round(predictionData.model.standardError * 2)}{' lbs)'}
+                      </div>
+                      
+                      {/* Prediction value - prominent display */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'baseline',
+                        gap: 8,
+                        flexWrap: 'wrap'
+                      }}>
+                        <span style={{ fontSize: 13, color: 'rgba(230, 238, 248, 0.7)' }}>
+                          Predicted 1RM in 12 weeks:
+                        </span>
+                        <span style={{
+                          fontSize: 18,
+                          fontWeight: 700,
+                          color: 'var(--text)',
+                          letterSpacing: '-0.3px'
+                        }}>
+                          {predictionData.predictions[predictionData.predictions.length - 1]?.predicted.toFixed(1)} lbs
+                        </span>
+                        <span style={{
+                          fontSize: 13,
+                          color: 'rgba(230, 238, 248, 0.6)',
+                          fontStyle: 'italic'
+                        }}>
+                          (±{Math.round(predictionData.model.standardError * 2)} lbs)
+                        </span>
                       </div>
                     </div>
                   )}

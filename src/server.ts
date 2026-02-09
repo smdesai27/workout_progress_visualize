@@ -323,13 +323,15 @@ app.post('/api/chat', async (req, res) => {
 
     // User-friendly error messages
     let userMessage = 'AI generation failed. Please try again.';
+    let statusCode = 500;
     if (error.status === 429) {
-      userMessage = 'AI is busy right now. Please wait a moment and try again.';
+      userMessage = 'AI currently unavailable';
+      statusCode = 429; // Keep 429 status for accurate rate limit detection
     } else if (error.status === 401 || error.status === 403) {
       userMessage = 'API key issue. Please check your GEMINI_API_KEY.';
     }
 
-    res.status(500).json({
+    res.status(statusCode).json({
       error: userMessage,
       response: userMessage, // Include response field for consistency
       details: error.message
