@@ -60,8 +60,8 @@ function sanitizeSessionId(id) {
     }
     return id;
 }
-// Initialize Gemini AI (use Firebase config for API key)
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || functions.config().gemini?.api_key || '';
+// Initialize Gemini AI (use environment variable for API key)
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 let genAI = null;
 if (GEMINI_API_KEY) {
     genAI = new generative_ai_1.GoogleGenerativeAI(GEMINI_API_KEY);
@@ -170,7 +170,19 @@ function loadData() {
         SESSIONS = [];
     }
 }
-loadData();
+// Lazy loading middleware
+let dataLoaded = false;
+function ensureDataLoaded() {
+    if (dataLoaded)
+        return;
+    loadData();
+    dataLoaded = true;
+}
+// Ensure data is loaded for every request
+app.use((req, res, next) => {
+    ensureDataLoaded();
+    next();
+});
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 app.get('/api/sessions', (_req, res) => {
     const out = SESSIONS.map(s => ({ id: s.id, title: s.title, start_time: s.start_time, end_time: s.end_time, description: s.description, exercises: Object.keys(s.exercises) }));

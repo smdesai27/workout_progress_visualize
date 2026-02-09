@@ -90,11 +90,27 @@ const createTestApp = () => {
         res.json(timeline);
     });
 
-    // Chat endpoint (mock)
+    // Chat endpoint (mock) with rate limit simulation
     app.post('/api/chat', (req, res) => {
-        const { userMessage } = req.body;
+        const { userMessage, systemPrompt } = req.body;
         if (!userMessage) {
             res.status(400).json({ error: 'Missing userMessage' });
+            return;
+        }
+        // Simulate rate limit for testing
+        if (userMessage === 'RATE_LIMIT_TEST') {
+            res.status(429).json({
+                error: 'AI currently unavailable',
+                response: 'AI currently unavailable'
+            });
+            return;
+        }
+        // Simulate API key error
+        if (userMessage === 'API_KEY_ERROR') {
+            res.status(401).json({
+                error: 'API key issue. Please check your GEMINI_API_KEY.',
+                response: 'API key issue. Please check your GEMINI_API_KEY.'
+            });
             return;
         }
         res.json({ response: 'Mock AI response', model: 'test' });
@@ -249,6 +265,31 @@ describe('API Endpoints', () => {
                 .post('/api/chat')
                 .send({ userMessage: '' });
             expect(response.status).toBe(400);
+        });
+
+        test('handles rate limit errors correctly', async () => {
+            const response = await request(app)
+                .post('/api/chat')
+                .send({ userMessage: 'RATE_LIMIT_TEST' });
+            expect(response.status).toBe(429);
+            expect(response.body.error).toBe('AI currently unavailable');
+            expect(response.body.response).toBe('AI currently unavailable');
+        });
+
+        test('handles API key errors correctly', async () => {
+            const response = await request(app)
+                .post('/api/chat')
+                .send({ userMessage: 'API_KEY_ERROR' });
+            expect(response.status).toBe(401);
+            expect(response.body.error).toContain('API key issue');
+        });
+
+        test('response includes model field on success', async () => {
+            const response = await request(app)
+                .post('/api/chat')
+                .send({ userMessage: 'Hello' });
+            expect(response.status).toBe(200);
+            expect(response.body).toHaveProperty('model');
         });
     });
 
