@@ -237,54 +237,93 @@ app.post('/api/chat', async (req, res) => {
       return;
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    // Call ListModels API directly to see what's available
+    let availableModels: string[] = [];
+    try {
+      const listResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`);
+      if (listResponse.ok) {
+        const listData = await listResponse.json();
+        availableModels = (listData.models || []).map((m: any) => m.name || '').filter(Boolean);
+      }
+    } catch (listErr: any) {
+      // If ListModels fails, we'll use fallback model names
+    }
 
-    const fullPrompt = systemPrompt
-      ? `${systemPrompt}\n\nUser: ${userMessage}`
-      : userMessage;
-
-    // Retry logic for rate limits
-    let attempts = 0;
-    const maxAttempts = 3;
-    let lastError: Error | null = null;
-
-    while (attempts < maxAttempts) {
+    // Find a model that supports generateContent
+    let model: any = null;
+    let modelName = '';
+    
+    // Try models from ListModels first, then fallback to common names
+    const candidates = availableModels.length > 0 
+      ? availableModels.filter((name: string) => name.includes('gemini'))
+      : ['gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'gemini-pro', 'gemini-1.5-pro', 'models/gemini-1.5-pro'];
+    
+    for (const candidate of candidates) {
       try {
-        const result = await model.generateContent(fullPrompt);
-        const response = result.response;
-        const text = response.text();
-
-        res.json({ response: text });
-        return;
-      } catch (err: any) {
-        lastError = err;
-        if (err?.status === 429) {
-          attempts++;
-          if (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 2000 * attempts));
-            continue;
-          }
-        }
+        // Remove 'models/' prefix if present, SDK adds it
+        const cleanName = candidate.replace(/^models\//, '');
+        model = genAI.getGenerativeModel({ model: cleanName });
+        modelName = cleanName;
         break;
+      } catch (modelErr: any) {
+        continue;
       }
     }
 
-    // Handle final error
-    console.error('Gemini API error:', lastError);
-    if ((lastError as any)?.status === 429) {
-      res.status(429).json({
-        error: 'AI currently unavailable',
-        response: 'AI currently unavailable'
-      });
-    } else {
+    if (!model) {
       res.status(500).json({
         error: 'AI service error',
-        response: 'I encountered an issue. Please try again.'
+        response: 'No available Gemini models found. Please check your API key and model availability.'
       });
+      return;
     }
-  } catch (err) {
-    console.error('Chat endpoint error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+
+    // Combine system prompt and user message
+    const fullPrompt = systemPrompt
+      ? `${systemPrompt}\n\nUser Question: ${userMessage}\n\nProvide a helpful, concise response (2-3 sentences):`
+      : userMessage;
+
+    // Retry logic for rate limits
+    let lastError: any = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const result = await model.generateContent(fullPrompt);
+        const response = result.response.text();
+        res.json({ response, model: modelName });
+        return;
+      } catch (err: any) {
+        lastError = err;
+        if (err.status === 429) {
+          // Rate limited - wait and retry
+          const waitTime = Math.min(2000 * Math.pow(2, attempt), 10000);
+          console.log(`Rate limited, waiting ${waitTime}ms before retry ${attempt + 1}`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+        throw err; // Re-throw non-rate-limit errors
+      }
+    }
+
+    // All retries exhausted
+    throw lastError;
+  } catch (error: any) {
+    console.error('AI Chat error:', error);
+
+    // User-friendly error messages
+    let userMessage = 'AI generation failed. Please try again.';
+    let statusCode = 500;
+    if (error.status === 429) {
+      userMessage = 'AI currently unavailable';
+      statusCode = 429; // Keep 429 status for accurate rate limit detection
+    } else if (error.status === 401 || error.status === 403) {
+      userMessage = 'API key issue. Please check your GEMINI_API_KEY.';
+    }
+
+    res.status(statusCode).json({
+      error: userMessage,
+      response: userMessage, // Include response field for consistency
+      details: error.message
+    });
   }
 });
 
