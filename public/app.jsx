@@ -689,12 +689,29 @@ function ChatDrawer({ isOpen, onClose, sessions, muscleMapping }) {
         body: JSON.stringify({ systemPrompt, userMessage })
       });
 
+      // Check if response is OK before parsing JSON
+      if (!response.ok) {
+        // Try to parse error response
+        let errorMessage = 'Failed to get response. Please try again.';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.response || errorMessage;
+        } catch (e) {
+          // If error response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${errorMessage}` }]);
+        return;
+      }
+
       const data = await response.json();
 
       if (data.error) {
         setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${data.error}` }]);
-      } else {
+      } else if (data.response) {
         setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: 'No response received from AI.' }]);
       }
     } catch (error) {
       console.error('Chat error:', error);

@@ -4,6 +4,7 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse/sync';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 type RawRow = {
   title: string;
@@ -23,8 +24,34 @@ type RawRow = {
   rpe: string;
 };
 
+// Security: HTML entity escaping to prevent XSS
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Validate and sanitize session ID format
+function sanitizeSessionId(id: string): string | null {
+  if (/<[^>]*>/g.test(id)) {
+    return null;
+  }
+  return id;
+}
+
+// Initialize Gemini AI (use Firebase config for API key)
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || functions.config().gemini?.api_key || '';
+let genAI: GoogleGenerativeAI | null = null;
+if (GEMINI_API_KEY) {
+  genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+}
+
 const app = express();
 app.use(cors());
+app.use(express.json({ limit: '10kb' })); // DoS protection
 
 const CSV_PATH = path.resolve(__dirname, '..', 'workout_data.csv');
 
@@ -67,8 +94,8 @@ function buildSessions(rows: RawRow[]) {
   return sessions;
 }
 
-function epley_formula(weight: number, reps:number){ return weight * (1 + (reps/30)); }
-function brzycki_formula(weight: number, reps:number){ return weight/(1.0278 - (0.0278*reps)); }
+function epley_formula(weight: number, reps: number) { return weight * (1 + (reps / 30)); }
+function brzycki_formula(weight: number, reps: number) { return weight / (1.0278 - (0.0278 * reps)); }
 
 function computeExerciseProgression(sessions: any[], exerciseName: string) {
   const timeline: { sessionId: string; date: string; maxWeight: number | null; epley: number | null; brzycki: number | null; totalSets: number }[] = [];
@@ -82,12 +109,12 @@ function computeExerciseProgression(sessions: any[], exerciseName: string) {
     for (const set of sets) {
       if (typeof set.weight_lbs === 'number') {
         if (maxW === null || set.weight_lbs > maxW) maxW = set.weight_lbs;
-        if (epley_1rm == null || epley_formula(set.weight_lbs,set.reps) > epley_1rm) epley_1rm = epley_formula(set.weight_lbs,set.reps);
-        if (brzycki_1rm == null || brzycki_formula(set.weight_lbs,set.reps) > brzycki_1rm) brzycki_1rm = brzycki_formula(set.weight_lbs,set.reps);
+        if (epley_1rm == null || epley_formula(set.weight_lbs, set.reps) > epley_1rm) epley_1rm = epley_formula(set.weight_lbs, set.reps);
+        if (brzycki_1rm == null || brzycki_formula(set.weight_lbs, set.reps) > brzycki_1rm) brzycki_1rm = brzycki_formula(set.weight_lbs, set.reps);
       }
       if (typeof set.reps === 'number') totalSets += 1;
     }
-    timeline.push({sessionId: s.id, date: s.start_time, maxWeight: maxW, epley: epley_1rm, brzycki: brzycki_1rm, totalSets: totalSets});
+    timeline.push({ sessionId: s.id, date: s.start_time, maxWeight: maxW, epley: epley_1rm, brzycki: brzycki_1rm, totalSets: totalSets });
   }
   timeline.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   return timeline;
@@ -124,8 +151,21 @@ function loadData() {
     SESSIONS = [];
   }
 }
+}
 
-loadData();
+// Lazy loading middleware
+let dataLoaded = false;
+function ensureDataLoaded() {
+  if (dataLoaded) return;
+  loadData();
+  dataLoaded = true;
+}
+
+// Ensure data is loaded for every request
+app.use((req, res, next) => {
+  ensureDataLoaded();
+  next();
+});
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
@@ -165,7 +205,7 @@ app.get('/api/session/:id', (req, res) => {
 app.get('/api/exercises', (_req, res) => {
   const set = new Set<string>();
   for (const r of RAW_ROWS) set.add(r.exercise_title || '(unknown)');
-  const arr = Array.from(set).sort((a,b)=>a.localeCompare(b));
+  const arr = Array.from(set).sort((a, b) => a.localeCompare(b));
   res.json(arr);
 });
 
@@ -178,6 +218,75 @@ app.get('/api/exercise/:name/progression', (req, res) => {
 app.get('/api/reload', (_req, res) => {
   loadData();
   res.json({ ok: true });
+});
+
+// AI Chat endpoint with Gemini API
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { userMessage, systemPrompt } = req.body;
+
+    if (!userMessage || typeof userMessage !== 'string') {
+      res.status(400).json({ error: 'Missing or invalid userMessage' });
+      return;
+    }
+
+    if (!genAI) {
+      res.status(503).json({
+        error: 'AI service temporarily unavailable',
+        response: 'The AI Coach is currently unavailable. Please check that the API key is configured.'
+      });
+      return;
+    }
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+    const fullPrompt = systemPrompt
+      ? `${systemPrompt}\n\nUser: ${userMessage}`
+      : userMessage;
+
+    // Retry logic for rate limits
+    let attempts = 0;
+    const maxAttempts = 3;
+    let lastError: Error | null = null;
+
+    while (attempts < maxAttempts) {
+      try {
+        const result = await model.generateContent(fullPrompt);
+        const response = result.response;
+        const text = response.text();
+
+        res.json({ response: text });
+        return;
+      } catch (err: any) {
+        lastError = err;
+        if (err?.status === 429) {
+          attempts++;
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 2000 * attempts));
+            continue;
+          }
+        }
+        break;
+      }
+    }
+
+    // Handle final error
+    console.error('Gemini API error:', lastError);
+    if ((lastError as any)?.status === 429) {
+      res.status(429).json({
+        error: 'Rate limit exceeded',
+        response: 'The AI is taking a short break. Please try again in a minute.'
+      });
+    } else {
+      res.status(500).json({
+        error: 'AI service error',
+        response: 'I encountered an issue. Please try again.'
+      });
+    }
+  } catch (err) {
+    console.error('Chat endpoint error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 export const api = functions.https.onRequest(app);
