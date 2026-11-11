@@ -22,6 +22,9 @@ firebase-debug.log
 .env
 .env.*
 
+## Workout data (personal, never commit)
+*.csv
+
 ## OS files
 .DS_Store
 

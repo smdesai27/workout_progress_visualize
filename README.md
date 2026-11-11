@@ -18,6 +18,8 @@ npm run dev
 
 3. Open http://localhost:3000 in your browser.
 
+The CSV is not included. Export your data from Hevy (Profile → Settings → Export Data) and save it as `workout_data.csv` in the repo root, or use the Upload CSV button in the app.
+
 Notes:
   - `GET /api/exercises` — list of exercise names
   - `GET /api/exercise/:name/progression` — progression timeline (max weight and total reps per session)
